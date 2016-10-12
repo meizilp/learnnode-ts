@@ -1,7 +1,10 @@
 import * as sqlite3 from 'sqlite3'
 
+import Task from "./model/task"
+
 let db = new sqlite3.Database(`${__dirname}/data.db`);
 
+Task.createTable(db)
 // db.serialize(function () {
 //     db.run("CREATE TABLE IF NOT EXISTS lorem (info TEXT)");
 

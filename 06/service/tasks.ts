@@ -12,7 +12,7 @@ router.route("/")
     .post((req, res, next) => {
         let task = new Task(`Task ${Date.now()}`, `I am note. ${Date.now()}`)
         task.save(db)
-        res.status(201).json({ "task": task.id })
+        res.status(201).json(task)
         next()
     })
 

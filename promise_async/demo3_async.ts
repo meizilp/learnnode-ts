@@ -2,7 +2,7 @@
 async function asyncFunc() {
     let p = new Promise((s, j) => {
         setTimeout(function () {
-            s(Promise.resolve())
+            s(Promise.resolve('I am resolved'))
         }, 3000);
     })
     console.log('before await')

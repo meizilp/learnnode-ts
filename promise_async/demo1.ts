@@ -6,7 +6,7 @@
  *      创建时为Pending状态；
  *      如果被resolve了就转化为fulfilled（完成）；
  *      如果reject了就转化为rejected（失败）。
- *      状态一旦转化后就不能再逆向变化回去。
+ *      状态一旦转化后就不能再变化，无论是逆向回去，还是再次reject，resolve都不会改变第一次转化的状态。
  *      如果不调用resolve也不调用reject，那么只会执行构造Promise时传入的回调函数,then和catch都不会执行。
  */
 

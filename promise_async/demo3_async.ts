@@ -1,22 +1,31 @@
-
-async function asyncFunc() {
-    let p = new Promise((s, j) => {
+async function wfunc() {
+    setTimeout(function () {
+        console.log('i will be waiting for 5 seconds')
+    }, 5000);
+    new Promise((resolve, reject) => {
         setTimeout(function () {
-            s(Promise.resolve('I am resolved'))
-        }, 3000);
+            // resolve('you got it')
+            reject(new Error('error test'))
+        }, 2000);
+    }).then((result) => {
+        console.log(result)
+    }).catch((e) => {
+        console.log('you got an error.')
+        // throw e
     })
-    console.log('before await')
-    let a = await p
-    console.log(`after await: ${a}`)
 }
 
-
-function run() {
+async function run() {
     console.log('Before call async function')
-    asyncFunc()
-        .then((result) => {
-            console.log(`async result:${result}`)
-        })
+    wfunc()
+        .then((result) => { console.log(`wfunc result:${result}`) })
+        .catch((e) => { console.error(e) })
+    // try {
+    //     await wfunc()
+    // }catch(e) {
+    //     console.log('i will be output error')
+    //     console.error(e)
+    // }
     console.log('After call async function')
 }
 

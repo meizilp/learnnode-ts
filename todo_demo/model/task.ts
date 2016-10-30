@@ -1,7 +1,9 @@
 import * as Knex from 'knex'
 
+import MyDb from '../db/db'
+
 interface TaskSchema {
-    id: number
+    id?: number
     title?: string
     note?: string
     create_at?: number
@@ -12,9 +14,16 @@ interface TaskSchema {
  * Task
  */
 class Task {
-    private data: TaskSchema
-    constructor() {
-        this.data = { id: 0 }
+    data: TaskSchema
+    constructor(input: TaskSchema) {
+        if (input) {
+            this.data = { id: Date.now() }
+            this.create_at = this.update_at = Date.now()
+            if (input.title) this.title = input.title
+            if (input.note) this.note = input.note
+        } else {
+            this.data = { id: 0 }
+        }
     }
 
     set id(v) {
@@ -57,6 +66,30 @@ class Task {
         return this.data.update_at
     }
 
+    async insertToDb() {
+        return await MyDb.getInstance(Task.table_name)
+            .insert(this.data)
+    }
+
+    async deleteFromDb() {
+        return await MyDb.getInstance(Task.table_name)
+            .where({ id: this.id })
+            .delete()
+    }
+
+    static async deleteFromDb(id: number) {
+        return await MyDb.getInstance(Task.table_name)
+            .where({ id: id })
+            .delete()
+    }
+
+    static async updateToDb(id: number, data: TaskSchema) {
+        data.update_at = Date.now()
+        return await MyDb.getInstance(Task.table_name)
+            .where({ id: id })
+            .update(data)
+    }
+
     static table_name = 'task'
     static async createTable(db: Knex) {
         if (await db.schema.hasTable(Task.table_name) === false) {
@@ -69,6 +102,18 @@ class Task {
             })
         }
     }
+
+    static async getAll() {
+        return await MyDb.getInstance(Task.table_name)
+            .where(true)
+    }
+
+    static async queryById(id: number) {
+        return await MyDb.getInstance(Task.table_name)
+            .where({ id: id })
+    }
 }
+
+export { TaskSchema }
 
 export default Task

@@ -1,11 +1,11 @@
 import * as express from 'express'
 import * as bodyParser from 'body-parser'
 
-import openDatabase from './db/db'
+import MyDb from './db/db'
 import tasks from './services/tasks'
 
 async function startServer() {
-    await openDatabase({
+    await MyDb.openDatabase({
         client: 'sqlite3',
         connection: { filename: `${__dirname}/knex.db` },
         useNullAsDefault: true

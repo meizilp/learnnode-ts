@@ -16,7 +16,7 @@ router.route('/')
     })
     .post(async (req, res, next) => {
         //创建一个新的Task
-        let task = new Task(req.body as TaskSchema)
+        let task = new Task(Task.toSchema(req.body))
         await task.insertToDb()
         res.status(201).json(task.data)
         next()
@@ -37,10 +37,7 @@ router.route('/:taskId')
     })
     .put(async (req, res, next) => {
         //更新指定id的Task
-        let input: TaskSchema = {}
-        if (req.body.note) input.note = req.body.note
-        if (req.body.title) input.title = req.body.title
-        let result = await Task.updateToDb(req.params.taskId, input)
+        let result = await Task.updateToDb(req.params.taskId, Task.toSchema(req.body))
         if (result == 0) {
             res.status(404).json({ code: 404, msg: `Task ${req.params.taskId} not found.` })
         } else if (result == 1) {
@@ -56,7 +53,7 @@ router.route('/:taskId')
         if (result == 0) {
             res.status(404).json({ code: 404, msg: `Task ${req.params.taskId} not found.` })
         } else if (result == 1) {
-            res.status(204)
+            res.status(204).end()
         } else {
             res.status(500).json({ msg: `Deleted ${result.length} records according to id ${req.params.taskId}, something must be wrong!` })
         }

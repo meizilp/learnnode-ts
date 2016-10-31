@@ -112,6 +112,17 @@ class Task {
         return await MyDb.getInstance(Task.table_name)
             .where({ id: id })
     }
+
+    static toSchema(o: any) {
+        let s = o as TaskSchema
+        let t: TaskSchema = {}
+        if (s.id) t.id = s.id
+        if (s.create_at) t.create_at = s.create_at
+        if (s.update_at) t.update_at = s.update_at
+        if (s.title) t.title = s.title
+        if (s.note) t.note = s.note
+        return t;
+    }
 }
 
 export { TaskSchema }

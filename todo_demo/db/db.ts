@@ -4,6 +4,7 @@ import TaskComment from '../model/comment'
 import Tag from '../model/tag'
 import TaskTag from '../model/task_tag'
 
+
 class MyDb {
     protected constructor() {
 
@@ -17,6 +18,14 @@ class MyDb {
     }
 
     static async createIndex(db) {
+
+    }
+
+    static async updateTable(db) {
+
+    }
+
+    static async updateIndex(db) {
 
     }
 

@@ -2,6 +2,10 @@ import * as Knex from 'knex'
 
 import MyDb from '../db/db'
 
+namespace TaskSchema {
+    export const version = 1
+}
+
 interface TaskSchema {
     id?: number
     title?: string
@@ -17,12 +21,12 @@ class Task {
     data: TaskSchema
     constructor(input: TaskSchema) {
         if (input) {
-            this.data = { id: Date.now() }
-            this.create_at = this.update_at = Date.now()
-            if (input.title) this.title = input.title
-            if (input.note) this.note = input.note
+            this.data = Task.toSchema(input)
+            if (!this.id) this.id = Date.now()
+            if (!this.create_at) this.create_at = Date.now()
+            if (!this.update_at) this.update_at = Date.now()
         } else {
-            this.data = { id: 0 }
+            this.data = { id: Date.now() }
         }
     }
 

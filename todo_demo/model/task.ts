@@ -4,7 +4,7 @@ import MyDb from '../db/db'
 
 namespace TaskSchema {
     export const name = 'task'
-    export const version = 1
+    export const version = 2
 
     export namespace fields {
         export const ID = 'id'
@@ -12,6 +12,7 @@ namespace TaskSchema {
         export const UPDATE_AT = 'update_at'
         export const TITLE = 'title'
         export const NOTE = 'note'
+        export const COMPLETED = 'completed'
     }
 }
 
@@ -21,6 +22,7 @@ interface TaskSchema {
     update_at?: number
     title?: string
     note?: string
+    completed?: boolean
 }
 
 /**
@@ -153,9 +155,27 @@ class Task {
         switch (fromVersion) {
             case 0:
                 return Task.updateTableAndIndexV0
+            case 1:
+                return Task.updateTableAndIndexV1
             default:
                 return null
         }
+    }
+    /*
+     * 更新表和索引。返回执行此步操作后表的版本号。
+     * 版本0比较特殊，要创建表，而且可以合并后续版本，一次更新多个版本。
+     */
+    private static async updateTableAndIndexV1(db: Knex) {
+        await Task.updateTableV1(db)
+        await Task.updateIndexV1(db)
+        return 2
+    }
+    private static async updateTableV1(db: Knex) {
+        await db.schema.table(TaskSchema.name, tableBuilder => {
+            tableBuilder.boolean(TaskSchema.fields.COMPLETED)
+        })
+    }
+    private static async updateIndexV1(db: Knex) {
     }
     /*
      * 更新表和索引。返回执行此步操作后表的版本号。

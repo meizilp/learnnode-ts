@@ -1,39 +1,58 @@
 import * as Knex from 'knex'
 import { TableInfoSchema, TableInfo } from './table_info'
-import { TaskSchema, Task } from '../model/task'
+import { TaskSchema } from '../model/task'
 import TaskComment from '../model/comment'
 import Tag from '../model/tag'
 import TaskTag from '../model/task_tag'
 
+interface TableSchema {
+    name: string
+    version: number
+    updateFuncs: ((db: Knex) => Promise<number>)[]
+}
 
 class MyDb {
     protected constructor() {
 
     }
 
-    static async updateTableAndIndex(db: Knex) {
+    /*
+     * 从给定的版本更新表和索引
+    */
+    private static async updateTableAndIndexFromVersion(ts: TableSchema, fromVersion: number, db: Knex) {
+        if (fromVersion == ts.version) { //表的版本等于当前代码版本，无需执行升级操作
+            return ts.version
+        } else if (fromVersion > ts.version) { //表的版本比当前代码版本高，代码无法支持
+            throw new Error(`Table ${ts.name}'s version ${fromVersion} > code version ${ts.version}`)
+        } else {
+            let newVersion: number = fromVersion
+            for (; newVersion < ts.version;) { //不停升级直至新版本号不再小于代码的版本号
+                let ufunc = ts.updateFuncs[newVersion]
+                if (ufunc) {
+                    newVersion = await ufunc(db)
+                } else {
+                    throw new Error(`Don't support update table ${ts.name} from version ${fromVersion}!`)
+                }
+            }
+            if (newVersion == ts.version) return newVersion //等于最新版本，升级完毕
+            else throw new Error(`Table ${ts.name}'s new version ${newVersion} > code version ${ts.version}!`) //>最新版本，不应该发生
+        }
+    }
+
+    private static async updateTableAndIndex(db: Knex) {
         //确保table_info表存在
         await TableInfo.makeSureExist(db)
-        //尝试升级table_info表，并保存表信息
-        let dbVersion: number
-        let newVersion: number
-        dbVersion = await TableInfo.getTableVersion(TableInfoSchema.name, db)
-        newVersion = await TableInfo.updateTableAndIndex(dbVersion, db)
-        if (dbVersion != newVersion) {
-            if (dbVersion == 0) {
-                TableInfo.insertToDb(TableInfoSchema.name, newVersion, db)
-            } else {
-                TableInfo.updateToDb(TableInfoSchema.name, newVersion, db)
-            }
-        }
-        //尝试升级task表，并保存表信息
-        dbVersion = await TableInfo.getTableVersion(TaskSchema.name, db)
-        newVersion = await TaskSchema.updateTableAndIndex(dbVersion, db)
-        if (dbVersion != newVersion) {
-            if (dbVersion == 0) {
-                TableInfo.insertToDb(TaskSchema.name, newVersion, db)
-            } else {
-                TableInfo.updateToDb(TaskSchema.name, newVersion, db)
+        //数组中的所有表都要检测是否需要升级
+        let tables = [TableInfoSchema, TaskSchema]
+        for (let t of tables) {
+            let dbVersion = await TableInfo.getTableVersion(t.name, db)
+            let newVersion = await MyDb.updateTableAndIndexFromVersion(t, dbVersion, db)
+            if (dbVersion != newVersion) {
+                if (dbVersion == 0) {
+                    TableInfo.insertToDb(t.name, newVersion, db)
+                } else {
+                    TableInfo.updateToDb(t.name, newVersion, db)
+                }
             }
         }
         //所有表都升级完毕

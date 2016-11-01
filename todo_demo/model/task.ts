@@ -5,6 +5,7 @@ import MyDb from '../db/db'
 namespace TaskSchema {
     export const name = 'task'
     export const version = 2
+    export const updateFuncs = [updateTableAndIndexV0, updateTableAndIndexV1]
 
     export namespace fields {
         export const ID = 'id'
@@ -13,44 +14,8 @@ namespace TaskSchema {
         export const TITLE = 'title'
         export const NOTE = 'note'
         export const COMPLETED = 'completed'
-    }    
-
-     /*
-     * 从给定的版本更新表和索引
-     */
-    export async function updateTableAndIndex(fromVersion: number, db: Knex) {
-        if (fromVersion == TaskSchema.version) { //表的版本等于当前代码版本，无需执行升级操作
-            return TaskSchema.version
-        } else if (fromVersion > TaskSchema.version) { //表的版本比当前代码版本高，代码无法支持
-            throw new Error(`Table ${TaskSchema.name}'s version ${fromVersion} > code version ${TaskSchema.version}`)
-        } else {
-            let newVersion: number = fromVersion
-            for (; newVersion < TaskSchema.version;) { //不停升级直至新版本号不再小于代码的版本号
-                let ufunc = getUpdateFuncByVersion(newVersion)
-                if (ufunc) {
-                    newVersion = await ufunc(db)
-                } else {
-                    throw new Error(`Don't support update table ${TaskSchema.name} from version ${fromVersion}!`)
-                }
-            }
-            if (newVersion == TaskSchema.version) return newVersion //等于最新版本，升级完毕
-            else throw new Error(`Table ${TaskSchema.name}'s new version ${newVersion} > code version ${TaskSchema.version}!`) //>最新版本，不应该发生
-        }
     }
-
-    /*
-     * 根据版本号获取升级函数。每个版本的升级函数实际上这个版本升级表格以及升级索引的操作。
-     */
-    function getUpdateFuncByVersion(fromVersion: number) {
-        switch (fromVersion) {
-            case 0:
-                return updateTableAndIndexV0
-            case 1:
-                return updateTableAndIndexV1
-            default:
-                return null
-        }
-    }
+    
     /*
      * 更新表和索引。返回执行此步操作后表的版本号。
      */
@@ -88,8 +53,6 @@ namespace TaskSchema {
     }
     async function updateIndexV0(db: Knex) {
     }
-
-    
 }
 
 interface TaskSchema {
@@ -198,7 +161,7 @@ class Task {
             if (s[TaskSchema.fields[x]]) t[TaskSchema.fields[x]] = s[TaskSchema.fields[x]]
         }
         return t;
-    }   
+    }
 }
 
 export { TaskSchema, Task }

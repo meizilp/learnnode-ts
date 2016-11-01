@@ -19,11 +19,27 @@ import MyDb from '../db/db'
 namespace TableInfoSchema {
     export const name = 'table_info'
     export const version = 1
+    export const updateFuncs = [updateTableAndIndexV0]
 
-    export const FIELD_CREATE_AT = 'create_at'
-    export const FIELD_UPDATE_AT = 'update_at'
-    export const FIELD_NAME = 'name'
-    export const FIELD_VERSION = 'version'
+    export namespace fields {
+        export const CREATE_AT = 'create_at'
+        export const UPDATE_AT = 'update_at'
+        export const NAME = 'name'
+        export const VERSION = 'version'
+    }
+    /*
+     * 更新表和索引。返回执行此步操作后表的版本号。
+     * 版本0比较特殊，要创建表，而且可以合并后续版本，一次更新多个版本。
+     */
+    async function updateTableAndIndexV0(db: Knex) {
+        await updateTableV0(db)
+        await updateIndexV0(db)
+        return 1
+    }
+    async function updateTableV0(db: Knex) {
+    }
+    async function updateIndexV0(db: Knex) {
+    }
 }
 
 interface TableInfoSchema {
@@ -56,7 +72,7 @@ class TableInfo {
     static async getTableVersion(table_name: string, db: Knex): Promise<number> {
         try {
             let q = db(TableInfoSchema.name)
-                .column(TableInfoSchema.FIELD_VERSION)
+                .column(TableInfoSchema.fields.VERSION)
                 .where({ name: table_name })
             let result: { version: number }[] = await q
             if (result.length == 1) return result[0].version
@@ -73,60 +89,12 @@ class TableInfo {
     static async makeSureExist(db: Knex) {
         if (await db.schema.hasTable(TableInfoSchema.name) === false) {
             await db.schema.createTable(TableInfoSchema.name, tableBuilder => {
-                tableBuilder.integer(TableInfoSchema.FIELD_CREATE_AT)
-                tableBuilder.integer(TableInfoSchema.FIELD_UPDATE_AT)
-                tableBuilder.string(TableInfoSchema.FIELD_NAME).primary
-                tableBuilder.integer(TableInfoSchema.FIELD_VERSION)
+                tableBuilder.integer(TableInfoSchema.fields.CREATE_AT)
+                tableBuilder.integer(TableInfoSchema.fields.UPDATE_AT)
+                tableBuilder.string(TableInfoSchema.fields.NAME).primary
+                tableBuilder.integer(TableInfoSchema.fields.VERSION)
             })
         }
-    }
-
-    /*
-     * 从给定的版本更新表和索引
-     */
-    static async updateTableAndIndex(fromVersion: number, db: Knex) {
-        if (fromVersion == TableInfoSchema.version) { //表的版本等于当前代码版本，无需执行升级操作
-            return TableInfoSchema.version
-        } else if (fromVersion > TableInfoSchema.version) { //表的版本比当前代码版本高，代码无法支持
-            throw new Error(`Table ${TableInfoSchema.name}'s version ${fromVersion} > code version ${TableInfoSchema.version}`)
-        } else {
-            let newVersion: number = fromVersion
-            for (; newVersion < TableInfoSchema.version;) { //不停升级直至新版本号不再小于代码的版本号
-                let ufunc = TableInfo.getUpdateFuncByVersion(newVersion)
-                if (ufunc) {
-                    newVersion = await ufunc(db)
-                } else {
-                    throw new Error(`Don't support update table ${TableInfoSchema.name} from version ${fromVersion}!`)
-                }
-            }
-            if (newVersion == TableInfoSchema.version) return newVersion //等于最新版本，升级完毕
-            else throw new Error(`Table ${TableInfoSchema.name}'s new version ${newVersion} > code version ${TableInfoSchema.version}!`) //>最新版本，不应该发生
-        }
-    }
-
-    /*
-     * 根据版本号获取升级函数。每个版本的升级函数实际上这个版本升级表格以及升级索引的操作。
-     */
-    private static getUpdateFuncByVersion(fromVersion: number) {
-        switch (fromVersion) {
-            case 0:
-                return TableInfo.updateTableAndIndexV0
-            default:
-                return null
-        }
-    }
-    /*
-     * 更新表和索引。返回执行此步操作后表的版本号。
-     * 版本0比较特殊，要创建表，而且可以合并后续版本，一次更新多个版本。
-     */
-    private static async updateTableAndIndexV0(db: Knex) {
-        await TableInfo.updateTableV0(db)
-        await TableInfo.updateIndexV0(db)
-        return 1
-    }
-    private static async updateTableV0(db: Knex) {
-    }
-    private static async updateIndexV0(db: Knex) {
     }
 }
 

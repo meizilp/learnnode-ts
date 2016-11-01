@@ -71,25 +71,25 @@ class Task {
     }
 
     async insertToDb() {
-        return await MyDb.getInstance(Task.table_name)
+        return await MyDb.getQueryBuilder(Task.table_name)
             .insert(this.data)
     }
 
     async deleteFromDb() {
-        return await MyDb.getInstance(Task.table_name)
+        return await MyDb.getQueryBuilder(Task.table_name)
             .where({ id: this.id })
             .delete()
     }
 
     static async deleteFromDb(id: number) {
-        return await MyDb.getInstance(Task.table_name)
+        return await MyDb.getQueryBuilder(Task.table_name)
             .where({ id: id })
             .delete()
     }
 
     static async updateToDb(id: number, data: TaskSchema) {
         data.update_at = Date.now()
-        return await MyDb.getInstance(Task.table_name)
+        return await MyDb.getQueryBuilder(Task.table_name)
             .where({ id: id })
             .update(data)
     }
@@ -108,18 +108,18 @@ class Task {
     }
 
     static async getAll() {
-        return await MyDb.getInstance(Task.table_name)
+        return await MyDb.getQueryBuilder(Task.table_name)
             .where(true)
     }
 
     static async queryById(id: number) {
-        return await MyDb.getInstance(Task.table_name)
+        return await MyDb.getQueryBuilder(Task.table_name)
             .where({ id: id })
     }
 
     static toSchema(o: any) {
         let s = o as TaskSchema
-        let t: TaskSchema = {}
+        let t: TaskSchema = {}        
         if (s.id) t.id = s.id
         if (s.create_at) t.create_at = s.create_at
         if (s.update_at) t.update_at = s.update_at

@@ -3,6 +3,7 @@ import Task from '../model/task'
 import TaskComment from '../model/comment'
 import Tag from '../model/tag'
 import TaskTag from '../model/task_tag'
+import { TableInfoSchema, TableInfo } from './table_info'
 
 
 class MyDb {
@@ -10,26 +11,25 @@ class MyDb {
 
     }
 
-    static async createTable(db) {
-        Task.createTable(db)
-        TaskComment.createTable(db)
-        Tag.createTable(db)
-        TaskTag.createTable(db)
+    static async updateTableAndIndex(db: Knex) {
+        //确保table_info表存在
+        await TableInfo.makeSureExist(db)
+        //尝试升级TableInfo表
+        let dbVersion: number
+        let newVersion: number
+        dbVersion = await TableInfo.getTableVersion(TableInfoSchema.name, db)
+        newVersion = await TableInfo.updateTableAndIndex(dbVersion, db)
+        if (dbVersion != newVersion) {
+            if (dbVersion == 0) {
+                TableInfo.insertToDb(TableInfoSchema.name, newVersion, db)
+            } else {
+                TableInfo.updateToDb(TableInfoSchema.name, newVersion, db)
+            }
+        }
+        return db
     }
 
-    static async createIndex(db) {
-
-    }
-
-    static async updateTable(db) {
-
-    }
-
-    static async updateIndex(db) {
-
-    }
-
-    static db: Knex
+    private static db: Knex
     /*
      * 使用指定的config打开数据库
      */
@@ -37,16 +37,14 @@ class MyDb {
         if (MyDb.db) return MyDb.db
         else {
             MyDb.db = await Knex(config)
-            await MyDb.createTable(MyDb.db)
-            await MyDb.createIndex(MyDb.db)
-            return MyDb.db
+            return await MyDb.updateTableAndIndex(MyDb.db)
         }
     }
 
     /*
      * 返回一个操作指定table的数据库对象
      */
-    static getInstance(table: string) {
+    static getQueryBuilder(table: string) {
         if (MyDb.db) return MyDb.db(table)
         else throw new Error('Database not opened!')
     }

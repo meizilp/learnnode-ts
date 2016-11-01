@@ -1,5 +1,36 @@
 import * as Knex from 'knex'
 
+namespace TagSchema {
+    export const name = 'tag'
+    export const version = 1
+    export const updateFuncs = [updateTableAndIndexV0]
+
+    export namespace fields {
+        export const ID = 'id'
+        export const CREATE_AT = 'create_at'
+        export const UPDATE_AT = 'update_at'
+        export const NAME = 'name'
+    }
+
+    async function updateTableAndIndexV0(db: Knex) {
+        await updateTableV0(db)
+        await updateIndexV0(db)
+        return 1
+    }
+    async function updateTableV0(db: Knex) {
+        if (await db.schema.hasTable(TagSchema.name) === false) {
+            await db.schema.createTable(TagSchema.name, tableBuilder => {
+                tableBuilder.integer(TagSchema.fields.ID).primary()
+                tableBuilder.integer(TagSchema.fields.CREATE_AT)
+                tableBuilder.integer(TagSchema.fields.UPDATE_AT)
+                tableBuilder.string(TagSchema.fields.NAME)
+            })
+        }
+    }
+    async function updateIndexV0(db: Knex) {
+    }
+}
+
 interface TagSchema {
     id: number
     create_at?: number
@@ -39,18 +70,6 @@ class Tag {
     set update_at(v) {
         this.data.update_at = v
     }
-
-    static table_name = 'tag'
-    static async createTable(db: Knex) {
-        if (await db.schema.hasTable(Tag.table_name) === false) {
-            await db.schema.createTable(Tag.table_name, tableBuilder => {
-                tableBuilder.integer('id').primary()
-                tableBuilder.integer('create_at')
-                tableBuilder.integer('update_at')
-                tableBuilder.string('name')
-            })
-        }
-    }
 }
 
-export default Tag
+export { TagSchema, Tag }

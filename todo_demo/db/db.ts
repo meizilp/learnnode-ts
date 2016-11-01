@@ -2,7 +2,7 @@ import * as Knex from 'knex'
 import { TableInfoSchema, TableInfo } from './table_info'
 import { TaskSchema } from '../model/task'
 import { CommentSchema } from '../model/comment'
-import Tag from '../model/tag'
+import { TagSchema } from '../model/tag'
 import TaskTag from '../model/task_tag'
 
 interface TableSchema {
@@ -43,7 +43,7 @@ class MyDb {
         //确保table_info表存在
         await TableInfo.makeSureExist(db)
         //数组中的所有表都要检测是否需要升级
-        let tables = [TableInfoSchema, TaskSchema, CommentSchema]
+        let tables = [TableInfoSchema, TaskSchema, CommentSchema, TagSchema]
         for (let t of tables) {
             let dbVersion = await TableInfo.getTableVersion(t.name, db)
             let newVersion = await MyDb.updateTableAndIndexFromVersion(t, dbVersion, db)

@@ -28,7 +28,7 @@ class MyDb {
         }
         //尝试升级task表，并保存表信息
         dbVersion = await TableInfo.getTableVersion(TaskSchema.name, db)
-        newVersion = await Task.updateTableAndIndex(dbVersion, db)
+        newVersion = await TaskSchema.updateTableAndIndex(dbVersion, db)
         if (dbVersion != newVersion) {
             if (dbVersion == 0) {
                 TableInfo.insertToDb(TaskSchema.name, newVersion, db)

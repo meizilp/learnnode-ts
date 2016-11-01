@@ -3,15 +3,24 @@ import * as Knex from 'knex'
 import MyDb from '../db/db'
 
 namespace TaskSchema {
+    export const name = 'task'
     export const version = 1
+
+    export namespace fields {
+        export const ID = 'id'
+        export const CREATE_AT = 'create_at'
+        export const UPDATE_AT = 'update_at'
+        export const TITLE = 'title'
+        export const NOTE = 'note'
+    }
 }
 
 interface TaskSchema {
     id?: number
-    title?: string
-    note?: string
     create_at?: number
     update_at?: number
+    title?: string
+    note?: string
 }
 
 /**
@@ -71,64 +80,105 @@ class Task {
     }
 
     async insertToDb() {
-        return await MyDb.getQueryBuilder(Task.table_name)
+        return await MyDb.getQueryBuilder(TaskSchema.name)
             .insert(this.data)
     }
 
     async deleteFromDb() {
-        return await MyDb.getQueryBuilder(Task.table_name)
+        return await MyDb.getQueryBuilder(TaskSchema.name)
             .where({ id: this.id })
             .delete()
     }
 
     static async deleteFromDb(id: number) {
-        return await MyDb.getQueryBuilder(Task.table_name)
+        return await MyDb.getQueryBuilder(TaskSchema.name)
             .where({ id: id })
             .delete()
     }
 
     static async updateToDb(id: number, data: TaskSchema) {
         data.update_at = Date.now()
-        return await MyDb.getQueryBuilder(Task.table_name)
+        return await MyDb.getQueryBuilder(TaskSchema.name)
             .where({ id: id })
             .update(data)
     }
 
-    static table_name = 'task'
-    static async createTable(db: Knex) {
-        if (await db.schema.hasTable(Task.table_name) === false) {
-            await db.schema.createTable(Task.table_name, tableBuilder => {
-                tableBuilder.integer('id').primary()
-                tableBuilder.string('title')
-                tableBuilder.string('note', 4096)
-                tableBuilder.integer('create_at')
-                tableBuilder.integer('update_at')
-            })
-        }
-    }
-
     static async getAll() {
-        return await MyDb.getQueryBuilder(Task.table_name)
+        return await MyDb.getQueryBuilder(TaskSchema.name)
             .where(true)
     }
 
     static async queryById(id: number) {
-        return await MyDb.getQueryBuilder(Task.table_name)
+        return await MyDb.getQueryBuilder(TaskSchema.name)
             .where({ id: id })
     }
 
     static toSchema(o: any) {
         let s = o as TaskSchema
-        let t: TaskSchema = {}        
-        if (s.id) t.id = s.id
-        if (s.create_at) t.create_at = s.create_at
-        if (s.update_at) t.update_at = s.update_at
-        if (s.title) t.title = s.title
-        if (s.note) t.note = s.note
+        let t: TaskSchema = {}
+        for (let x in TaskSchema.fields) {
+            if (s[TaskSchema.fields[x]]) t[TaskSchema.fields[x]] = s[TaskSchema.fields[x]]
+        }
         return t;
+    }
+
+
+    /*
+     * 从给定的版本更新表和索引
+     */
+    static async updateTableAndIndex(fromVersion: number, db: Knex) {
+        if (fromVersion == TaskSchema.version) { //表的版本等于当前代码版本，无需执行升级操作
+            return TaskSchema.version
+        } else if (fromVersion > TaskSchema.version) { //表的版本比当前代码版本高，代码无法支持
+            throw new Error(`Table ${TaskSchema.name}'s version ${fromVersion} > code version ${TaskSchema.version}`)
+        } else {
+            let newVersion: number = fromVersion
+            for (; newVersion < TaskSchema.version;) { //不停升级直至新版本号不再小于代码的版本号
+                let ufunc = Task.getUpdateFuncByVersion(newVersion)
+                if (ufunc) {
+                    newVersion = await ufunc(db)
+                } else {
+                    throw new Error(`Don't support update table ${TaskSchema.name} from version ${fromVersion}!`)
+                }
+            }
+            if (newVersion == TaskSchema.version) return newVersion //等于最新版本，升级完毕
+            else throw new Error(`Table ${TaskSchema.name}'s new version ${newVersion} > code version ${TaskSchema.version}!`) //>最新版本，不应该发生
+        }
+    }
+
+    /*
+     * 根据版本号获取升级函数。每个版本的升级函数实际上这个版本升级表格以及升级索引的操作。
+     */
+    private static getUpdateFuncByVersion(fromVersion: number) {
+        switch (fromVersion) {
+            case 0:
+                return Task.updateTableAndIndexV0
+            default:
+                return null
+        }
+    }
+    /*
+     * 更新表和索引。返回执行此步操作后表的版本号。
+     * 版本0比较特殊，要创建表，而且可以合并后续版本，一次更新多个版本。
+     */
+    private static async updateTableAndIndexV0(db: Knex) {
+        await Task.updateTableV0(db)
+        await Task.updateIndexV0(db)
+        return 1
+    }
+    private static async updateTableV0(db: Knex) {
+        if (await db.schema.hasTable(TaskSchema.name) === false) {
+            await db.schema.createTable(TaskSchema.name, tableBuilder => {
+                tableBuilder.integer(TaskSchema.fields.ID).primary()
+                tableBuilder.integer(TaskSchema.fields.CREATE_AT)
+                tableBuilder.integer(TaskSchema.fields.UPDATE_AT)
+                tableBuilder.string(TaskSchema.fields.TITLE)
+                tableBuilder.string(TaskSchema.fields.NOTE, 4096)
+            })
+        }
+    }
+    private static async updateIndexV0(db: Knex) {
     }
 }
 
-export { TaskSchema }
-
-export default Task
+export { TaskSchema, Task }

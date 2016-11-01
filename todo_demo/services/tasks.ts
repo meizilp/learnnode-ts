@@ -1,8 +1,7 @@
 import * as express from 'express'
 import * as Knex from 'knex'
 
-import Task from '../model/task'
-import { TaskSchema } from '../model/task'
+import { Task, TaskSchema } from '../model/task'
 
 //url: host/tasks/v1
 let router = express.Router()

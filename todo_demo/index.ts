@@ -5,6 +5,7 @@ import MyDb from './db/db'
 import tasks from './services/tasks'
 
 async function startServer() {
+
     await MyDb.openDatabase({
         client: 'sqlite3',
         connection: { filename: `${__dirname}/knex.db` },

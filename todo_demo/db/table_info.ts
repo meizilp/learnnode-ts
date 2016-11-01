@@ -68,6 +68,20 @@ class TableInfo {
     }
 
     /*
+     * 确保table_info表创建。因为这个表用于版本管理，所以比较特殊。
+     */
+    static async makeSureExist(db: Knex) {
+        if (await db.schema.hasTable(TableInfoSchema.name) === false) {
+            await db.schema.createTable(TableInfoSchema.name, tableBuilder => {
+                tableBuilder.integer(TableInfoSchema.FIELD_CREATE_AT)
+                tableBuilder.integer(TableInfoSchema.FIELD_UPDATE_AT)
+                tableBuilder.string(TableInfoSchema.FIELD_NAME).primary
+                tableBuilder.integer(TableInfoSchema.FIELD_VERSION)
+            })
+        }
+    }
+
+    /*
      * 从给定的版本更新表和索引
      */
     static async updateTableAndIndex(fromVersion: number, db: Knex) {
@@ -87,20 +101,6 @@ class TableInfo {
             }
             if (newVersion == TableInfoSchema.version) return newVersion //等于最新版本，升级完毕
             else throw new Error(`Table ${TableInfoSchema.name}'s new version ${newVersion} > code version ${TableInfoSchema.version}!`) //>最新版本，不应该发生
-        }
-    }
-
-    /*
-     * 确保table_info表创建。因为这个表用于版本管理，所以比较特殊。
-     */
-    static async makeSureExist(db: Knex) {
-        if (await db.schema.hasTable(TableInfoSchema.name) === false) {
-            await db.schema.createTable(TableInfoSchema.name, tableBuilder => {
-                tableBuilder.integer(TableInfoSchema.FIELD_CREATE_AT)
-                tableBuilder.integer(TableInfoSchema.FIELD_UPDATE_AT)
-                tableBuilder.string(TableInfoSchema.FIELD_NAME).primary
-                tableBuilder.integer(TableInfoSchema.FIELD_VERSION)
-            })
         }
     }
 

@@ -1,9 +1,9 @@
 import * as Knex from 'knex'
-import Task from '../model/task'
+import { TableInfoSchema, TableInfo } from './table_info'
+import { TaskSchema, Task } from '../model/task'
 import TaskComment from '../model/comment'
 import Tag from '../model/tag'
 import TaskTag from '../model/task_tag'
-import { TableInfoSchema, TableInfo } from './table_info'
 
 
 class MyDb {
@@ -14,7 +14,7 @@ class MyDb {
     static async updateTableAndIndex(db: Knex) {
         //确保table_info表存在
         await TableInfo.makeSureExist(db)
-        //尝试升级TableInfo表
+        //尝试升级table_info表，并保存表信息
         let dbVersion: number
         let newVersion: number
         dbVersion = await TableInfo.getTableVersion(TableInfoSchema.name, db)
@@ -26,6 +26,17 @@ class MyDb {
                 TableInfo.updateToDb(TableInfoSchema.name, newVersion, db)
             }
         }
+        //尝试升级task表，并保存表信息
+        dbVersion = await TableInfo.getTableVersion(TaskSchema.name, db)
+        newVersion = await Task.updateTableAndIndex(dbVersion, db)
+        if (dbVersion != newVersion) {
+            if (dbVersion == 0) {
+                TableInfo.insertToDb(TaskSchema.name, newVersion, db)
+            } else {
+                TableInfo.updateToDb(TaskSchema.name, newVersion, db)
+            }
+        }
+        //所有表都升级完毕
         return db
     }
 
